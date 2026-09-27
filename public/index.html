@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>QVAC Hashtag Generator</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    min-height: 100vh;
+    background: linear-gradient(160deg, #f0fdfa 0%, #ccfbf1 100%);
+    font-family: system-ui, -apple-system, sans-serif;
+    color: #134e4a;
+    display: flex;
+    justify-content: center;
+    padding: 46px 20px;
+  }
+  .wrap { width: 100%; max-width: 560px; }
+  h1 { font-size: 1.5rem; margin: 0 0 6px; color: #0f766e; font-weight: 800; text-align: center; }
+  .subtitle { color: #3f7873; margin-bottom: 24px; font-size: 0.9rem; text-align: center; }
+  .card {
+    background: #ffffff;
+    border: 2px solid #99f6e4;
+    border-radius: 16px;
+    padding: 28px 26px;
+  }
+  textarea {
+    width: 100%;
+    padding: 12px 14px;
+    border-radius: 12px;
+    border: 2px solid #99f6e4;
+    background: #f5fffd;
+    color: #134e4a;
+    font-family: inherit;
+    font-size: 1rem;
+    margin-bottom: 16px;
+    resize: vertical;
+    min-height: 90px;
+  }
+  button.action {
+    padding: 12px 28px;
+    border: none;
+    border-radius: 999px;
+    font-size: 1rem;
+    font-weight: 700;
+    font-family: inherit;
+    cursor: pointer;
+    background: #0d9488;
+    color: #fff;
+    width: 100%;
+  }
+  button.action:disabled { opacity: 0.4; cursor: not-allowed; }
+  .status { margin-top: 14px; font-size: 0.85rem; color: #3f7873; min-height: 1.2em; text-align: center; }
+  .tags { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 20px; }
+  .tag {
+    background: #ccfbf1;
+    color: #0f766e;
+    padding: 6px 12px;
+    border-radius: 999px;
+    font-size: 0.9rem;
+    font-weight: 700;
+  }
+  .footer-note { color: #3f7873; font-size: 0.78rem; margin-top: 20px; text-align: center; }
+  .spinner {
+    display: inline-block;
+    width: 13px; height: 13px;
+    border: 2px solid #ccfbf1;
+    border-top-color: #0d9488;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+    vertical-align: middle;
+    margin-right: 8px;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>QVAC Hashtag Generator</h1>
+    <p class="subtitle">Describe your post topic, get relevant hashtags. 100% on-device.</p>
+
+    <div class="card">
+      <textarea id="mainInput" placeholder="e.g. My homemade sourdough bread turned out perfectly golden this morning."></textarea>
+      <button class="action" id="generateBtn">Generate Hashtags</button>
+      <div class="status" id="status"></div>
+      <div class="tags" id="resultBox"></div>
+    </div>
+
+    <p class="footer-note">Everything runs locally on your machine. No text ever leaves this device.</p>
+  </div>
+
+  <script>
+    function escapeHtml(str) {
+      const div = document.createElement('div');
+      div.textContent = str;
+      return div.innerHTML;
+    }
+
+    const mainInput = document.getElementById('mainInput');
+    const generateBtn = document.getElementById('generateBtn');
+    const status = document.getElementById('status');
+    const resultBox = document.getElementById('resultBox');
+
+    async function generate() {
+      const value = mainInput.value.trim();
+      if (!value) return;
+      generateBtn.disabled = true;
+      resultBox.innerHTML = '';
+      status.innerHTML = '<span class="spinner"></span>Finding relevant hashtags...';
+
+      try {
+        const res = await fetch('/api/hashtag', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ topic: value }),
+        });
+        const data = await res.json();
+        if (data.error) throw new Error(data.error);
+
+        status.textContent = '';
+        resultBox.innerHTML = data.hashtags.map((t) => `<span class="tag">${escapeHtml(t)}</span>`).join('');
+      } catch (err) {
+        status.textContent = 'Error: ' + err.message;
+      } finally {
+        generateBtn.disabled = false;
+      }
+    }
+
+    generateBtn.addEventListener('click', generate);
+    mainInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) generate();
+    });
+  </script>
+</body>
+</html>
